@@ -33,9 +33,8 @@ class FilterActor(val filterFunction: ReflexMessage => Boolean, val topic: Strin
           if (filterFunction(rflxMsg)) processorActor ! rflxMsg
       }
 
-
     case unknown =>
-      log.error(s"got Unknown message: $unknown")
+      log.error(s"Got unknown message: $unknown")
 
   }
 }

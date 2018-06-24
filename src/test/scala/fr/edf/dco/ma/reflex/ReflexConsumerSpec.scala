@@ -2,8 +2,8 @@ package fr.edf.dco.ma.reflex
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import cakesolutions.kafka.{KafkaProducer, KafkaProducerRecord}
 import cakesolutions.kafka.testkit.KafkaServer
+import cakesolutions.kafka.{KafkaProducer, KafkaProducerRecord}
 import com.typesafe.config.{Config, ConfigFactory}
 import fr.edf.dco.ma.reflex.FilterActor.StopWorking
 import fr.edf.dco.ma.reflex.ReflexProtocol.ReflexMessage
@@ -13,10 +13,11 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import scala.concurrent.duration._
 import scala.util.Random
 
+
+
 class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
   def this() = this(ActorSystem("MySpec"))
-
 
   /*****************************************
     * HELPER METHODS
@@ -45,9 +46,9 @@ class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with Im
     kafkaServer.close()
   }
   val keySerializer =   new StringSerializer()
-  val valueSerializer =  new StringSerializer()
+  val valueSerializer =  new JsonSerializer[ReflexMessage]
   val keyDeserializer = new StringDeserializer()
-  val valueDeserializer = new StringDeserializer()
+  val valueDeserializer = new JsonDeserializer[ReflexMessage]
 
 
   val producer =
@@ -55,7 +56,7 @@ class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with Im
 
   def submitMsg(times: Int, topic: String, msg: ReflexMessage) = {
     for(i <- 1 to times) {
-      producer.send(KafkaProducerRecord(topic, randomString, msg.text))
+      producer.send(KafkaProducerRecord(topic, randomString, msg))
       producer.flush()
     }
   }
@@ -67,7 +68,7 @@ class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with Im
 
   "A display actor" must {
     "display all filtered messages" in {
-      def filterFunction(reflexMessage: ReflexMessage) : Boolean = true
+      def filterFunction(r: ReflexMessage) : Boolean = true
 
       val displayActor = system.actorOf(DisplayActor.props, "DisplayTest")
       val filterActor = system.actorOf(FilterActor.props(filterFunction, "test", displayActor, config), "FilterTest")

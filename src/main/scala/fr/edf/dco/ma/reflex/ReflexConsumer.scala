@@ -23,7 +23,7 @@ trait ReflexConsumer extends KafkaConfig{
   val msgExtractor = ConsumerRecords.extractor[java.lang.String, ReflexMessage]
 
   val kafkaConsumerActor = context.actorOf(
-    KafkaConsumerActor.props(config,new StringDeserializer(), new StringDeserializer, self),
+    KafkaConsumerActor.props(config,new StringDeserializer(), new JsonDeserializer[ReflexMessage], self),
     "ReflexKafkaConsumerActor"
   )
 

@@ -19,8 +19,10 @@ libraryDependencies ++= Seq(
   "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.0.0",
   "net.cakesolutions" %% "scala-kafka-client-testkit" % "0.10.0.0",
 
-  //JSon et autres
-  "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test",
-  "org.slf4j" % "slf4j-simple" % "1.6.4",
-  "com.typesafe.play" % "play-json_2.11" % "2.5.12"
+  //JSon
+  "com.typesafe.play" % "play-json_2.11" % "2.5.12",
+
+  "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test"
+  //TODO: Décommenter pour des logs console verbeux (logger à implémenter correctement)
+  //"org.slf4j" % "slf4j-simple" % "1.6.4"
 )

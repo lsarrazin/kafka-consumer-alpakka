@@ -10,6 +10,6 @@ object DisplayActor {
 class DisplayActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
-    case r: ReflexMessage => log.info(s"Message lu : $r")
+    case r: ReflexMessage => log.info(s"Message lu : ${r.text}")
   }
 }
