@@ -29,7 +29,7 @@ class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with Im
   val config: Config = ConfigFactory.parseString(
     s"""
        | bootstrap.servers = "localhost:${kafkaServer.kafkaPort}",
-       | auto.offset.reset = "latest",
+       | auto.offset.reset = "earliest",
        | group.id = "$randomString"
         """.stripMargin
   )
