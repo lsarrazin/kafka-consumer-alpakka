@@ -2,20 +2,23 @@ package fr.edf.dco.ma.reflex
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import com.typesafe.config.Config
-import fr.edf.dco.ma.reflex.FilterActor.StopWorking
-import fr.edf.dco.ma.reflex.ReflexProtocol.ReflexMessage
+
+import FilterActor.StopWorking
+import ReflexProtocol.ReflexMessage
 
 
 object FilterActor {
-  def props(filterFunction: ReflexMessage => Boolean, topic: String, processorActor: ActorRef, config: Config): Props = Props(new FilterActor(filterFunction, topic, processorActor, config))
+  def props(filterFunction: ReflexMessage => Boolean, processorActor: ActorRef): Props = Props(new FilterActor(filterFunction, processorActor))
 
   case object StopWorking
-
 }
 
-class FilterActor(val filterFunction: ReflexMessage => Boolean, val topic: String, val processorActor: ActorRef, val config: Config) extends Actor
-  with ActorLogging with ReflexConsumer {
+class FilterActor(val filterFunction: ReflexMessage => Boolean, val processorActor: ActorRef) 
+  extends Actor with ActorLogging {
 
+  //for pattern matching in our receive method
+  val msgExtractor = ConsumerRecords.extractor[java.lang.String, ReflexMessage]
+  
   override def preStart() = {
     super.preStart()
     subscribe(List(topic))

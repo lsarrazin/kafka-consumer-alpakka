@@ -1,7 +1,8 @@
 package fr.edf.dco.ma.reflex
 
 import akka.actor.{Actor, ActorLogging, Props}
-import fr.edf.dco.ma.reflex.ReflexProtocol.ReflexMessage
+
+import ReflexProtocol.ReflexMessage
 
 object DisplayActor {
   def props: Props = Props[DisplayActor]
