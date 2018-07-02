@@ -13,13 +13,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "org.scalatest" %% "scalatest" % "3.0.5" % "test",
 
-  // Alpakka 0.19 (Kafka 0.11 -- searching for 0.10 compatibility)
-  "com.typesafe.akka" %% "akka-stream-kafka" % "0.19",
+  // Alpakka 0.22 (Kafka 1.+)
+  "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
 
   //JSon
   "com.typesafe.play" %% "play-json" % playVersion,
 
-  "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test"
-  //TODO: Décommenter pour des logs console verbeux (logger à implémenter correctement)
-  //"org.slf4j" % "slf4j-simple" % "1.6.4"
+  "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test",
+  "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
