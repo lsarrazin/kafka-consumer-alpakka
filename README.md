@@ -7,6 +7,8 @@ https://www.confluent.io/product/confluent-open-source/
 Kafka is expected listening at localhost:9092
 Test topic is named "topic1" (tada!)
 
+Development done with Kafka 1.0.1
+
 ## Actors
 
 ```
