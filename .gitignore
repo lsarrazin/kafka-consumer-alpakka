@@ -17,3 +17,5 @@ logs
 .cache-main
 .settings/
 /bin/
+/project/
+/.cache-tests
