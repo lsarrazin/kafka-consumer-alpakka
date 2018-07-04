@@ -1,0 +1,26 @@
+{
+  "event_id": "event_id1",
+  "event_type": "event_type1",
+  "event_source": "event_source_large_connector",
+  "event_time": 1513766240000,
+  "event_parents": ["event_idX", "event_idY"],
+  "event_technical": {
+    "app1": {
+      "meta_tech1": "value1",
+      "meta_tech2": "value2"
+    },
+    "app2": {
+      "meta_tech3": "value3 with spaces",
+      "meta_tech4": "value4"
+    }
+  },
+  "event_data": {
+    "data_label0": null,
+    "data_label1": "Fill here with sufficiently large text data to simulate large JSON file (not done presently to keep jar size in check)",
+    "nested_data": {
+      "nested_data_label2": "value2",
+      "nested_data_label3": "value3",
+      "nested_data_label4": null
+    }
+  }
+}
