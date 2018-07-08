@@ -1,14 +1,14 @@
 {
-  "event_id": "event_id1",
-  "event_type": "event_type1",
-  "event_source": "event_source_test_connector",
-  "event_time": 1513766240000,
-  "event_parents": [],  
-  "event_technical": {    
-    "app1": {      
+  "event_id": "${euuid}",
+  "event_type": "${etype}",
+  "event_source": "${esource}",
+  "event_time": ${ets},
+  "event_parents": ${eparents},  
+  "event_technical": {
+    "app1": {
       "meta_tech1": "value1",      
       "meta_tech2": "value2 with spaces"    
-    },    
+    },
     "app2": {      
       "meta_tech3": "value3",      
       "meta_tech4": "value4"
