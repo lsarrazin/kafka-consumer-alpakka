@@ -1,4 +1,4 @@
-package fr.edf.dco.ma.reflex.data
+package org.lsa.scala.data
 
 import scala.language.implicitConversions
 
@@ -45,12 +45,19 @@ case class VList(l: List[VType] = Nil) extends VType {
   override def toBJSon(tabs: Int): String = toJSon
 }
 
-case class KVPair(key: String, value: VType) extends VType {
+case class KVPair(key: String, private val raw: VType) extends VType {
+  val value = raw match {
+    case s: KVSet => s
+    case p: KVPair => KVSet(p)
+    case v: VType => v
+  }
+  
   def toJSon: String = "" + '"' + key + '"' + ": " + value.toJSon
   def toBJSon(tabs: Int): String = "" + '"' + key + '"' + ": " + value.toBJSon(tabs)
 }
-case class KVSet(val items: Set[KVPair] = Set.empty) extends VType {
 
+case class KVSet(items: Set[KVPair] = Set.empty) extends VType {
+  
   def append(kv: KVPair) = new KVSet(items + kv)
   def +(kv: KVPair) = new KVSet(items + kv)
   def append(kvs: KVSet) = new KVSet(items ++ kvs.items)
@@ -65,6 +72,7 @@ case class KVSet(val items: Set[KVPair] = Set.empty) extends VType {
 }
 
 object KVSet {
+  
   def apply(kv1: KVPair) =
     new KVSet(Set(kv1))
   def apply(kv1: KVPair, kv2: KVPair) =
@@ -167,9 +175,10 @@ object Test extends App {
   val kv5 = KVPair("att5", 123)
   val ob2 = KVSet(kv3, kv4, kv5)
   
-  val kv6 = KVPair("att6", List[VType](1, 2, 3))
+  val kv6 = VInt(8)
+  val kv7 = KVPair("att7", List[VType](1, 2, 3))
 
-  val ob3 = KVSet(KVPair("sob1", ob1), KVPair("sob2", ob2), KVPair("att7", kv6))
+  val ob3 = KVSet(KVPair("sob1", ob1), KVPair("sob2", ob2), KVPair("att3", kv6), kv7, KVPair("att4", kv7))
 
   println(ob3.toBJSon(0))
 }
