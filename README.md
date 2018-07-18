@@ -44,3 +44,16 @@ Spurious messages
 789:{"text":123}
 890:Hello world!
 ```
+
+### Embedded Kafka broker / Zookeeper server
+
+For unit-testing purposes, project comes bundled with a barebone embedded Kafka broker and Zookeeper server.
+
+You just need to provide two ports (one for the broker, the other for Zookeeper). The only available commands are startup (which fires both ZK and Kafka), shutdown and createTopic :
+
+```
+val kafkaServer: EmbeddedKafkaBroker = new EmbeddedKafkaBroker(9092, 2181)
+kafkaServer.startup()
+kafkaServer.createTopic("topic1")
+kafkaServer.shutdown()
+```
