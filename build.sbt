@@ -20,5 +20,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % playVersion,
 
   "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test",
-  "ch.qos.logback" % "logback-classic" % "1.2.3"
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
+
+  //For additional embedded joy
+  "org.apache.zookeeper" % "zookeeper" % "3.4.12",
+  "org.apache.commons" % "commons-io" % "1.3.2",
+  "org.apache.kafka" %% "kafka" % "1.0.1"
 )

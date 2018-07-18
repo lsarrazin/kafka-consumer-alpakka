@@ -1,34 +1,24 @@
 package fr.edf.dco.ma.reflex
 
-import akka.{ Done, NotUsed }
-import akka.actor.{ Actor, ActorLogging, ActorRef, ActorSystem, Props }
-
-import akka.kafka._
+import akka.Done
+import akka.actor.{ActorRef, ActorSystem}
+import akka.kafka.ConsumerMessage.CommittableMessage
 import akka.kafka.scaladsl.Consumer
-import akka.kafka.scaladsl.Consumer.DrainingControl
-import akka.kafka.{ ConsumerSettings, ProducerSettings, Subscriptions }
-import akka.kafka.ConsumerMessage.{ CommittableMessage, CommittableOffsetBatch }
-
-import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
+import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.ActorMaterializer
-
-import org.apache.kafka.clients.consumer.{ ConsumerConfig, ConsumerRecord }
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.{ Metric, MetricName, TopicPartition }
-import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, ByteArraySerializer, StringDeserializer, StringSerializer }
+import akka.stream.scaladsl.Sink
+import fr.edf.dco.ma.reflex.ReflexProtocol.{ReflexEvent, ReflexMessage, SpuriousMessage}
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
-import java.util.concurrent.atomic.AtomicLong
-
-import ReflexProtocol.{ ReflexMessage, SpuriousMessage }
-import ReflexProtocol.ReflexEvent
+import scala.util.{Failure, Success}
 
 
 class KafkaSettings(bootstrapServers: String, consumerGroup: String, val topics: String)(implicit system: ActorSystem) {
 
   lazy val configC = system.settings.config.getConfig("akka.kafka.consumer")
+
   def consumerSettings =
     ConsumerSettings(configC, new ByteArrayDeserializer, new ByteArrayDeserializer)
       .withBootstrapServers(bootstrapServers)
@@ -40,7 +30,7 @@ class KafkaSettings(bootstrapServers: String, consumerGroup: String, val topics:
 class BusinessController(procActor: ActorRef, errActor: ActorRef) {
 
   type Service[A, C] = A => Future[C]
-  
+
   val reflexDeserializer = new JsonDeserializer[ReflexEvent]
 
   val handleMessage: Service[CommittableMessage[Array[Byte], Array[Byte]], Done] =
@@ -57,14 +47,14 @@ class BusinessController(procActor: ActorRef, errActor: ActorRef) {
         Future.successful(Done)
       } catch {
         case e: Throwable => println("Deserialization error: " + e.getMessage)
-        errActor ! SpuriousMessage(msg.record.topic, msg.record.partition, msg.record.offset, msg.record.timestamp, key, new String(msg.record.value)) 
-        Future.successful(Done)
+          errActor ! SpuriousMessage(msg.record.topic, msg.record.partition, msg.record.offset, msg.record.timestamp, key, new String(msg.record.value))
+          Future.successful(Done)
       }
     }
 
 }
 
-class ReflexConsumer(settings: KafkaSettings, bc: BusinessController)(implicit system: ActorSystem, context: ExecutionContextExecutor) {
+class ReflexConsumer(settings: KafkaSettings, bc: BusinessController)(implicit system: ActorSystem, context: ExecutionContextExecutor, actorMaterializer: ActorMaterializer) {
 
   type KafkaMessage = CommittableMessage[Array[Byte], Array[Byte]]
 
@@ -73,7 +63,7 @@ class ReflexConsumer(settings: KafkaSettings, bc: BusinessController)(implicit s
   val kafkaTopics = settings.topics
 
   // Create source connector from kafka settings, and apply business logic
-  def kafkaSource =
+  def kafkaSource: Consumer.Control =
     Consumer
       .committableSource(consumerSettings, Subscriptions.topics(kafkaTopics))
       .mapAsync(1) { msg =>
@@ -82,13 +72,16 @@ class ReflexConsumer(settings: KafkaSettings, bc: BusinessController)(implicit s
           .flatMap {
             response =>
               msg.committableOffset.commitScaladsl
-          } 
-          .recoverWith{
+          }
+          .recoverWith {
             case e =>
               system.log.error("An exception occured: ", e)
               msg.committableOffset.commitScaladsl
           }
       }
+      //TODO: need those lines otherwise can't get the consumerControl back and shutdown the consume in unit testing. We should find a way to properly pass Sink and Materializer other than "runWith".
+      .to(Sink.foreach(it => println(s"Done with $it")))
+      .run()(actorMaterializer)
 
   def terminateWhenDone(result: Future[Done]): Unit =
     result.onComplete {
@@ -109,15 +102,15 @@ object ReflexConsumer extends App {
   implicit val system = ActorSystem("ReflexConsumer")
   implicit val materializer = ActorMaterializer.create(system)
   implicit val ec = system.dispatcher
-  
+
   // Sample filter function, skip messages longer than 10 chars
-  def filterFunction(r: ReflexMessage) : Boolean = {
+  def filterFunction(r: ReflexMessage): Boolean = {
     val res = (r.event.text.size <= 10)
     system.log.info("Filtering: " + r + " => " + res)
     if (res == false) system.log.debug(r.event + " was filtered as text holds more than 10 chars")
     res
   }
-  
+
   val rejectActor = system.actorOf(RejectActor.props, "RejectActor")
   val displayActor = system.actorOf(DisplayActor.props, "DisplayActor")
   val filterActor = system.actorOf(FilterActor.props(filterFunction, displayActor, rejectActor), "FilterActor")
@@ -127,11 +120,9 @@ object ReflexConsumer extends App {
   val reflexSource = new ReflexConsumer(settings, controller)
 
   // explicit commit
-  reflexSource.kafkaSource.runWith(Sink.ignore)
+  reflexSource.kafkaSource
 
 }
-
-
 
 
 /*

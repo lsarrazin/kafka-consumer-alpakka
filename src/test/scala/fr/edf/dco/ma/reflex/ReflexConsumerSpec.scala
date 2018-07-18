@@ -1,52 +1,52 @@
 package fr.edf.dco.ma.reflex
 
 import akka.actor.ActorSystem
-import akka.testkit.{ ImplicitSender, TestKit, TestProbe }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import akka.kafka.ProducerSettings
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import com.typesafe.config.Config
+import fr.edf.dco.ma.reflex.FilterActor.StopWorking
+import fr.edf.dco.ma.reflex.ReflexProtocol.{ReflexEvent, ReflexMessage}
+import fr.edf.dco.ma.reflex.embedded.EmbeddedKafkaBroker
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.kafka.common.serialization.StringSerializer
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-import com.typesafe.config.{ Config, ConfigFactory }
-
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import scala.util.Random
 
-import akka.kafka.scaladsl.Producer
-import akka.kafka.ProducerSettings
-
-import org.apache.kafka.common.serialization.{ ByteArraySerializer, StringSerializer }
-import org.apache.kafka.clients.producer.ProducerRecord
-
-import scala.concurrent.Future
-import akka.Done
-
-import scala.util.{ Failure, Success }
-
-import FilterActor.StopWorking
-import ReflexProtocol.{ReflexEvent, ReflexMessage, SpuriousMessage}
-
-class ReflexConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
+class ReflexConsumerSpec (_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
+  def this() = this(ActorSystem("ReflexConsumerSpec"))
 
-  //implicit val system = ActorSystem("ReflexConsumer")
-  implicit val ec = system.dispatcher
+  //Initializing of ActorSystem, and various stuff needed for the ReflexConsumer
+  val aSys: ActorSystem = ActorSystem("ReflexSpec")
+  val materializer: ActorMaterializer = ActorMaterializer.create(aSys)
+  val ec: ExecutionContextExecutor = aSys.dispatcher
+
+  val kafkaServer: EmbeddedKafkaBroker = new EmbeddedKafkaBroker(9092, 2181)
 
   // Create Kafka producer for test purpose
-  val config = system.settings.config.getConfig("akka.kafka.producer")
-  val producerSettings =
+  val config: Config = system.settings.config.getConfig("akka.kafka.producer")
+  val producerSettings: ProducerSettings[String, ReflexEvent] =
     ProducerSettings(config, new StringSerializer, new JsonSerializer[ReflexEvent])
       .withBootstrapServers("localhost:9092")
-  val kafkaProducer = producerSettings.createKafkaProducer()
+  val kafkaProducer: KafkaProducer[String, ReflexEvent] = producerSettings.createKafkaProducer()
 
-  def terminateWhenDone(result: Future[Done]): Unit =
-    result.onComplete {
-      case Failure(e) =>
-        system.log.error(e, e.getMessage)
-        system.terminate()
-      case Success(_) => system.terminate()
-    }
+  override def beforeAll(): Unit = {
+    kafkaServer.startup()
+    kafkaServer.createTopic("topic1")
+  }
 
-  def submitMsg(times: Int, topic: String, evt: ReflexEvent) = {
+  override def afterAll(): Unit = {
+    TestKit.shutdownActorSystem(system)
+    kafkaProducer.close()
+    kafkaServer.shutdown()
+  }
 
+  def submitMsg(times: Int, topic: String, evt: ReflexEvent): Unit = {
     def randomString: String = Random.alphanumeric.take(5).mkString("Id#", "", "")
 
     for (i <- 1 to times) {
@@ -55,10 +55,13 @@ class ReflexConsumerSpec(_system: ActorSystem) extends TestKit(_system) with Imp
     kafkaProducer.flush()
   }
 
-  /************************************************
-   * Les tests
-   */
+  /** **********************************************
+    * Les tests
+    */
 
+  //A very poor test at first, you have to check manually that 10 messages have indeed been displayed
+  //by the DisplayActor.
+  //TODO : Handle a state in the DisplayActor to actually perform a real check...
   "A display actor" must {
     "display all filtered messages" in {
 
@@ -73,13 +76,27 @@ class ReflexConsumerSpec(_system: ActorSystem) extends TestKit(_system) with Imp
       tester.watch(displayActor)
       tester.watch(rejectActor)
 
+      //Now that the ActorSystem is in place, we run the actual consumer.
+      val bootstrapServers = "localhost:9092"
+      val consumerGroup = "Reflex_SCG"
+      val kafkaTopics = "topic1"
+      val controller = new BusinessController(filterActor, rejectActor)
+
+      val settings = new KafkaSettings(bootstrapServers, consumerGroup, kafkaTopics)
+      val reflexSource = new ReflexConsumer(settings, controller)(aSys, ec, materializer)
+
+      val control = reflexSource.kafkaSource
+
+      //We produce some messages
       submitMsg(10, "topic1", ReflexEvent("Hello World !"))
 
-      Thread.sleep(5000)
+      Thread.sleep(10000)
 
+      //We shut down the source then the Actors.
+      reflexSource.terminateWhenDone(control.shutdown())
       filterActor ! StopWorking
 
-      tester.expectTerminated(filterActor, 10 seconds)
+      tester.expectTerminated(filterActor, 20 seconds)
     }
   }
 
