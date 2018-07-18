@@ -47,7 +47,7 @@ Spurious messages
 
 ### Embedded Kafka broker / Zookeeper server
 
-For unit-testing purposes, project comes bundled with a barebone embedded Kafka broker and Zookeeper server.
+For unit-testing purposes, project comes bundled with a barebone embedded Kafka broker (v1.0.1 as stated above) and Zookeeper server (3.4.12).
 
 You just need to provide two ports (one for the broker, the other for Zookeeper). The only available commands are startup (which fires both ZK and Kafka), shutdown and createTopic :
 
