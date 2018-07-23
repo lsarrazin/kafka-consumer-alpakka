@@ -49,7 +49,7 @@ class ReflexConsumerSpec extends TestKit(ActorSystem("ReflexConsumerSpec"))
 
 
   /** **********************************************
-    * Helper methodes
+    * Helper methods
     */
 
   override def beforeEach(): Unit = {
