@@ -23,10 +23,11 @@ class FilterActor(filterFunction: ReflexMessage => Boolean, processorActor: Acto
       self ! PoisonPill
     
     case m: ReflexMessage =>
-      log.info("Found something to filter !")
       if (filterFunction(m)) {
+        log.info("Sent something to processor.")
         processorActor ! m
       } else {
+        log.info("Rejected something.")
         rejectActor ! m
       }
 
