@@ -4,15 +4,12 @@ import java.io.{File, IOException}
 import java.nio.file.Files
 import java.util.Properties
 
-import akka.actor.ActorSystem
-import kafka.server.{KafkaConfig, KafkaServerStartable}
-import org.apache.commons.io.FileUtils
-
-import scala.concurrent.ExecutionContextExecutor
-
 import kafka.admin.TopicCommand
+import kafka.server.{KafkaConfig, KafkaServerStartable}
 import kafka.utils.ZkUtils
+import org.apache.commons.io.FileUtils
 import org.apache.kafka.common.security.JaasUtils
+import org.slf4j.LoggerFactory
 
 /**
   *
@@ -20,14 +17,16 @@ import org.apache.kafka.common.security.JaasUtils
   * Thanks to https://github.com/chbatey for most of the code !
   *
   * @param kafkaPort The port the Kafka broker will listen to.
-  * @param zkPort The port the Zookeeper instance will listen to.
+  * @param zkPort    The port the Zookeeper instance will listen to.
   */
-class EmbeddedKafkaBroker(kafkaPort: Int, zkPort: Int)(implicit system: ActorSystem) {
+class EmbeddedKafkaBroker(kafkaPort: Int, zkPort: Int) {
 
   var zookeeper: EmbeddedZookeeper = _
   var logDir: File = _
   var kafkaBrokerConfig: Properties = new Properties()
   var broker: KafkaServerStartable = _
+
+  val logger = LoggerFactory.getLogger("EmbeddedZookeeper")
 
   def startup(): Unit = {
     zookeeper = new EmbeddedZookeeper(zkPort)
@@ -59,7 +58,7 @@ class EmbeddedKafkaBroker(kafkaPort: Int, zkPort: Int)(implicit system: ActorSys
         FileUtils.deleteDirectory(logDir)
       catch {
         case e: IOException =>
-          system.log.warning("Problems deleting temporary directory " + logDir.getAbsolutePath, e)
+          logger.warn("Problems deleting temporary directory " + logDir.getAbsolutePath, e)
       }
     }
   }
@@ -82,7 +81,7 @@ class EmbeddedKafkaBroker(kafkaPort: Int, zkPort: Int)(implicit system: ActorSys
     val opts = new TopicCommand.TopicCommandOptions(arguments)
     val zkUtils = ZkUtils.apply(opts.options.valueOf(opts.zkConnectOpt), 30000, 30000, JaasUtils.isZkSecurityEnabled)
     try { // run
-      system.log.info(s"Executing: CreateTopic $topicName")
+      logger.warn(s"Executing: CreateTopic $topicName")
       TopicCommand.createTopic(zkUtils, opts)
     } finally zkUtils.close()
   }

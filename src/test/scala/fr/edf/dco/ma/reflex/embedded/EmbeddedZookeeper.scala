@@ -6,6 +6,7 @@ import java.nio.file.Files
 
 import org.apache.commons.io.FileUtils
 import org.apache.zookeeper.server.{NIOServerCnxnFactory, ZooKeeperServer}
+import org.slf4j.LoggerFactory
 
 /**
   *
@@ -18,6 +19,8 @@ class EmbeddedZookeeper(port: Int) {
 
   private val maxConnections: Int = 16
   private var factory: NIOServerCnxnFactory = null
+
+  val logger = LoggerFactory.getLogger("EmbeddedZookeeper")
 
   def startup(): Unit = {
 
@@ -39,7 +42,7 @@ class EmbeddedZookeeper(port: Int) {
           FileUtils.deleteDirectory(logDir)
         } catch {
           case e: IOException =>
-          // We tried!
+            logger.warn("Problems deleting temporary directory " + logDir.getAbsolutePath, e)
         }
       }
     })
