@@ -11,6 +11,7 @@ libraryDependencies ++= Seq(
   //Akka
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
+  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "org.scalatest" %% "scalatest" % "3.0.5" % "test",
 
   // Alpakka 0.22 (Kafka 1.+)
@@ -19,11 +20,15 @@ libraryDependencies ++= Seq(
   //JSon
   "com.typesafe.play" %% "play-json" % playVersion,
 
-  "org.slf4j" % "log4j-over-slf4j" % "1.7.21" % "test",
+  //Logging, we are using logback as our main framework.
+  //We'll use slf4j to handle all the bridging required by the various dependencies
+  //and primarily Kafka server that wants to bind to log4j
   "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "org.slf4j" % "log4j-over-slf4j" % "1.7.25",
 
   //For additional embedded joy
-  "org.apache.zookeeper" % "zookeeper" % "3.4.12",
   "org.apache.commons" % "commons-io" % "1.3.2",
   "org.apache.kafka" %% "kafka" % "1.0.1"
+    exclude("org.slf4j", "slf4j-log4j12")
+    exclude("log4j", "log4j")
 )

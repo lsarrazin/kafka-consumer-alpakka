@@ -70,17 +70,17 @@ class ReflexConsumer(settings: KafkaSettings, bc: BusinessController)(implicit s
         println("Received: " + msg.record.key + " => " + msg.record.value)
         bc.handleMessage(msg)
           .flatMap {
-            response =>
+            _ =>
               msg.committableOffset.commitScaladsl
           }
           .recoverWith {
             case e =>
-              system.log.error("An exception occured: ", e)
+              system.log.error("An exception occurred: ", e)
               msg.committableOffset.commitScaladsl
           }
       }
       //TODO: need those lines otherwise can't get the consumerControl back and shutdown the consume in unit testing. We should find a way to properly pass Sink and Materializer other than "runWith".
-      .to(Sink.foreach(it => println(s"Done with $it")))
+      .to(Sink.ignore)
       .run()(actorMaterializer)
 
   def terminateWhenDone(result: Future[Done]): Unit =

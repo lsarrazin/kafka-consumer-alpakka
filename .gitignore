@@ -19,3 +19,4 @@ logs
 /bin/
 /project/
 /.cache-tests
+reflex.log
